@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:android_alarm_manager/android_alarm_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 // import 'package:path/path.dart' as p;
@@ -17,7 +19,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Pigie Tracker',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -31,7 +33,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blueGrey,
       ),
       home: MyHomePage(
-        title: 'Flutter Demo Home Page',
+        title: 'Pigie Tracker',
         storage: CounterStorage(),
       ),
     );
@@ -110,6 +112,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> initApp() async {
+    // var res = await AndroidAlarmManager.initialize();
+
+    // if (!res) {}
+
     var value = await readData();
 
     final path = await _localPath;
@@ -190,18 +196,11 @@ class _MyHomePageState extends State<MyHomePage> {
       _images.add(_image);
       _path = path;
       _counter++;
+      checkboxValues[_counter] = false;
     });
     return writeData(_counter);
   }
 
-  // void addText() async {
-  //   // var ss = await writeImage("hank ssss");
-  //   // var path = p.basename(ss.path);
-  //   setState(() {
-  //     _path = path;
-  //     // text.add("hello guys");
-  //   });
-  // }
   final checkbox_x = -1.0993 - 0.09 - 0.01;
   final checkbox_y = -1.0993 - 0.09 - 0.01;
 
@@ -214,198 +213,63 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Padding(
-          padding: const EdgeInsets.all(18.0),
-          child: Center(
-              child: GridView.builder(
-            gridDelegate:
-                SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
-            itemCount: checkboxValues.keys.length,
-            itemBuilder: (context, index) => Container(
-                width: 160,
-                height: 160,
+        appBar: AppBar(
+          // Here we take the value from the MyHomePage object that was created by
+          // the App.build method, and use it to set our appbar title.
+          title: Text(widget.title),
+        ),
+        body: Padding(
+            padding: const EdgeInsets.all(18.0),
+            child: Center(
+                child: GridView.builder(
+              gridDelegate:
+                  SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+              itemCount: checkboxValues.keys.length,
+              itemBuilder: (context, index) => Container(
+                  width: 160,
+                  height: 160,
+                  decoration: BoxDecoration(
+                      image: DecorationImage(
+                          image: FileImage(_images[index]), fit: BoxFit.cover)),
+                  child: Checkbox(
+                    value: checkboxValues[index],
+                    onChanged: (bool value) => {
+                      setState(() => {checkboxValues[index] = value})
+                    },
+                  ),
+                  alignment: Alignment(checkbox_x, checkbox_y)),
+            ))),
+        floatingActionButton: FloatingActionButton(
+          onPressed: getImage,
+          tooltip: 'Camera',
+          child: Icon(Icons.camera_alt),
+        ),
+        // This trailing comma makes auto-formatting nicer for build methods.
+        drawer: Drawer(
+          // Add a ListView to the drawer. This ensures the user can scroll
+          // through the options in the drawer if there isn't enough vertical
+          // space to fit everything.
+          child: ListView(
+            // Important: Remove any padding from the ListView.
+            padding: EdgeInsets.zero,
+            children: <Widget>[
+              DrawerHeader(
+                child: Text('Settings'),
                 decoration: BoxDecoration(
-                    image: DecorationImage(
-                        image: FileImage(_images[index]), fit: BoxFit.cover)),
-                child: Checkbox(
-                  value: checkboxValues[index],
-                  onChanged: (bool value) => {
-                    setState(() => {checkboxValues[index] = value})
-                  },
+                  color: Colors.blue,
                 ),
-                alignment: Alignment(checkbox_x, checkbox_y)),
-          ))),
+              ),
+              ListTile(
+                title: Text('Set Alarm'),
+                onTap: () async {
+                  var res = await AndroidAlarmManager.oneShot(
+                      Duration(seconds: 10), 0, () {});
 
-      //  Container(
-      //   height: 100.0,
-      //   color: Colors.black,
-      //   alignment: Alignment.center,
-      //   ),
-      //  Container(
-      //   height: 100.0,
-      //   color: Colors.blue,
-      //   alignment: Alignment.center,
-      //   ),
-      //  Container(
-      //   height: 100.0,
-      //   color: Colors.red,
-      //   alignment: Alignment.center,
-      //   ),
-      //  Container(
-      //   height: 100.0,
-      //   color: Colors.green,
-      //   alignment: Alignment.center,
-      //   ),
-      //  Container(
-      //   height: 100.0,
-      //   color: Colors.grey,
-      //   alignment: Alignment.center,
-      //   ),
-      //  Container(
-      //   height: 100.0,
-      //   color: Colors.orange,
-      //   alignment: Alignment.center,
-      //   ),
-      //   Container(
-      //   height: 100.0,
-      //   color: Colors.orange,
-      //   alignment: Alignment.center,
-      //   ),
-      //   Container(
-      //   height: 100.0,
-      //   color: Colors.orange,
-      //   alignment: Alignment.center,
-      //   ),
-      //   Container(
-      //   height: 100.0,
-      //   color: Colors.orange,
-      //   alignment: Alignment.center,
-      //   ),
-      // )
-      // ],
-      // )
-      //     Row(
-
-      //       child: CustomScrollView(
-      //   slivers: <Widget>[
-      //   SliverGrid(
-      //       gridDelegate:
-      //       SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
-      //     delegate: SliverChildListDelegate([
-      //       // _path == null ? Text("PATH UNKNOWN") : Text('$_counter' + _path),
-      //     if (_images != null)
-      //     for (var image in _images)
-      // Stack(
-      //     children: checkboxValues.keys
-      //         .map(
-      //           (keys) => new Container(
-      //           width: 160,
-      //           height: 160,
-      //           decoration: BoxDecoration(
-      //             image: DecorationImage(
-      //                 image: FileImage(image),
-      //                 fit: BoxFit.cover),
-      //           ),
-      //           child: image == null
-      //               ? Text("no image selected")
-      //               : Container(
-      //             child: Checkbox(
-      //               value: checkboxValues[keys],
-      //               onChanged: (bool value) {
-      //                 setState(() {
-      //                   checkboxValues[keys] = value;
-      //                 });
-      //               },
-      //             ),
-      //             alignment:
-      //             Alignment(checkbox_x, checkbox_y),
-      //           )),
-      //     )
-      //         .toList())
-
-      //       // Column is also a layout widget. It takes a list of children and
-      //       // arranges them vertically. By default, it sizes itself to fit its
-      //       // children horizontally, and tries to be as tall as its parent.
-      //       //
-      //       // Invoke "debug painting" (press "p" in the console, choose the
-      //       // "Toggle Debug Paint" action from the Flutter Inspector in Android
-      //       // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-      //       // to see the wireframe for each widget.
-      //       //
-      //       // Column has various properties to control how it sizes itself and
-      //       // how it positions its children. Here we use mainAxisAlignment to
-      //       // center the children vertically; the main axis here is the vertical
-      //       // axis because Columns are vertical (the cross axis would be
-      //       // horizontal).
-      //       mainAxisAlignment: MainAxisAlignment.start,
-      //       children: <Widget>[
-      //         Wrap(
-      //           direction: Axis.vertical,
-      //           children: <Widget>[
-      //             if (text != null)
-      //               for (var image in text)
-      //                 Container(
-      //                   child: image == null
-      //                       ? Text("no image selected")
-      //                       : Text(image)// Image.file(image),
-      //                 ),
-      //             //Container(child: _image==null? Text("no image selected"):Image.file(_image),)
-      //           ],
-      //         ),
-      //     //     // Row(children: <Widget>[
-      //     //     // Container(child: _image==null? Text("no image selected"):Image.file(_image),)
-      //     //     // ],),
-      //     //     // Row(children: <Widget>[
-      //     //     // Container(child: _image==null? Text("no image selected"):Image.file(_image),)
-      //     //     // ],),
-      //     //     // Row(children: <Widget>[
-      //     //     // Container(child: _image==null? Text("no image selected"):Image.file(_image),)
-      //     //     // ],),
-      //     //     // Text(
-      //     //     //   'You have pushed the button this many times:',
-      //     //     //   style: TextStyle(fontSize: initialSize + _counter),
-      //     //     // ),
-      //     //     // Text(
-      //     //     //   '$_counter',
-      //     //     //   style: Theme.of(context).textTheme.display1,
-      //     //     // ),
-      //     //     // Center(child: _image==null? Text("no image selected"):Image.file(_image)),
-      //     //   ],
-      //     // ),
-      //     // ListView.builder(
-      //     //   shrinkWrap: true,
-      //     //   itemBuilder: (context, position) {
-      //     //     return Wrap(
-      //     //       direction: Axis.vertical,
-      //     //       children: <Widget>[
-      //     //         if (text != null)
-      //     //           for (var image in text)
-      //     //             Container(
-      //     //               constraints: BoxConstraints(minHeight: 100,minWidth: 100,maxHeight: 160,maxWidth: 160),
-      //     //               child: image == null
-      //     //                   ? Text("no image selected")
-      //     //                   : Text(image),
-      //     //             ),
-      //     //       ],
-      //     //     );
-      //     //   },
-      //     // )
-
-      // ),
-      // ],
-
-      floatingActionButton: FloatingActionButton(
-        onPressed: getImage,
-        tooltip: 'Camera',
-        child: Icon(Icons.camera_alt),
-      ),
-      // This trailing comma makes auto-formatting nicer for build methods.
-      drawer: Drawer(),
-    );
+                  print(res);
+                },
+              ),
+            ],
+          ),
+        ));
   }
 }
