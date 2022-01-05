@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:android_alarm_manager/android_alarm_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -98,12 +97,13 @@ class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   double initialSize = 20;
   bool hasInit;
-  File _image;
+  PickedFile _image;
   List<File> _images = [];
   List<String> text = [];
   List<int> bytes = [];
   String _path = "";
   Map<int, bool> checkboxValues = {};
+  ImagePicker picker = ImagePicker();
 
   @override
   void initState() {
@@ -116,11 +116,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // if (!res) {}
 
-    var value = await readData();
 
     final path = await _localPath;
 
     var imageDirectory = Directory('$path/images');
+
+    var value = await imageDirectory.list().length;
 
     if (!await imageDirectory.exists()) {
       await imageDirectory.create();
@@ -162,43 +163,21 @@ class _MyHomePageState extends State<MyHomePage> {
     return file.writeAsBytes(bytes);
   }
 
-  Future<int> readData() async {
-    try {
-      final file = await _localFile;
-
-      // Read the file
-      String contents = await file.readAsString();
-
-      return int.parse(contents);
-    } catch (e) {
-      // If encountering an error, return 0
-      return 0;
-    }
-  }
-
-  Future<File> writeData(int data) async {
-    final file = await _localFile;
-
-    // Write the file.
-    return file.writeAsString('$data');
-  }
 
   Future<File> getImage() async {
     // await writeData(_counter);
-    var image = await ImagePicker.pickImage(source: ImageSource.camera);
+    var image = await picker.getImage(source: ImageSource.camera);
     bytes = await image.readAsBytes();
     await writeImage(bytes, '$_counter.png');
-    await writeData(_counter);
     // writeImage("hank ssss");
     var path = await _localPath;
     setState(() {
       _image = image;
-      _images.add(_image);
+      _images.add(File(image.path));
       _path = path;
-      _counter++;
       checkboxValues[_counter] = false;
+      _counter++;
     });
-    return writeData(_counter);
   }
 
   final checkbox_x = -1.0993 - 0.09 - 0.01;
@@ -262,10 +241,6 @@ class _MyHomePageState extends State<MyHomePage> {
               ListTile(
                 title: Text('Set Alarm'),
                 onTap: () async {
-                  var res = await AndroidAlarmManager.oneShot(
-                      Duration(seconds: 10), 0, () {});
-
-                  print(res);
                 },
               ),
             ],
