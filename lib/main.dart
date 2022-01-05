@@ -33,50 +33,15 @@ class MyApp extends StatelessWidget {
       ),
       home: MyHomePage(
         title: 'Pigie Tracker',
-        storage: CounterStorage(),
       ),
     );
   }
 }
 
-class CounterStorage {
-  Future<String> get _localPath async {
-    final directory = await getApplicationDocumentsDirectory();
-
-    return directory.path;
-  }
-
-  Future<File> get _localFile async {
-    final path = await _localPath;
-    return File('$path/counter.txt');
-  }
-
-  Future<int> readCounter() async {
-    try {
-      final file = await _localFile;
-
-      // Read the file
-      String contents = await file.readAsString();
-
-      return int.parse(contents);
-    } catch (e) {
-      // If encountering an error, return 0
-      return 0;
-    }
-  }
-
-  Future<File> writeCounter(int counter) async {
-    final file = await _localFile;
-
-    // Write the file
-    return file.writeAsString('$counter');
-  }
-}
 
 class MyHomePage extends StatefulWidget {
-  final CounterStorage storage;
 
-  MyHomePage({Key key, this.title, @required this.storage}) : super(key: key);
+  MyHomePage({Key key, this.title}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -100,7 +65,6 @@ class _MyHomePageState extends State<MyHomePage> {
   PickedFile _image;
   List<File> _images = [];
   List<String> text = [];
-  List<int> bytes = [];
   String _path = "";
   Map<int, bool> checkboxValues = {};
   ImagePicker picker = ImagePicker();
@@ -112,28 +76,34 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> initApp() async {
-    // var res = await AndroidAlarmManager.initialize();
-
-    // if (!res) {}
-
-
     final path = await _localPath;
 
-    var imageDirectory = Directory('$path/images');
+    final imageDirectory = Directory('$path/images');
 
-    var value = await imageDirectory.list().length;
+    final files = await imageDirectory.list().toList();
+
+    final value = files.length;
 
     if (!await imageDirectory.exists()) {
       await imageDirectory.create();
     }
 
-    List<File> array = [];
-    for (var i = 0; i < value; i++) {
-      array.add(await _localImage('$i.png'));
+    // var array = Iterable<int>.generate(value).toList().map((idx) {
+    //   final val = files[idx];
+    //
+    //   return File(val.path);
+    // });
+    var array = files.asMap().entries.map((entry) {
+      final index = entry.key;
+      final file = entry.value;
+
       setState(() {
-        checkboxValues[i] = false;
+        checkboxValues[index] = false;
       });
-    }
+
+      return File(file.path);
+    }).toList();
+
     setState(() {
       _counter = value;
       _images = array;
@@ -163,13 +133,41 @@ class _MyHomePageState extends State<MyHomePage> {
     return file.writeAsBytes(bytes);
   }
 
-
   Future<File> getImage() async {
-    // await writeData(_counter);
-    var image = await picker.getImage(source: ImageSource.camera);
-    bytes = await image.readAsBytes();
-    await writeImage(bytes, '$_counter.png');
-    // writeImage("hank ssss");
+    final image = await picker.getImage(source: ImageSource.camera);
+
+    final name = await showDialog<String>(
+        context: context,
+        builder: (BuildContext build) {
+          var value = "";
+          return SimpleDialog(
+            contentPadding: EdgeInsets.all(15),
+            title: const Text("Name This Pigeon"),
+            children: <Widget>[
+              TextField(
+                decoration: InputDecoration(
+                    // border: OutlineInputBorder(),
+                    hintText: "Pigeon Name"),
+                onChanged: (String v) {
+                  value = v;
+                },
+              ),
+              MaterialButton(
+                  child: const Text("Save"),
+                  color: Colors.lightBlueAccent,
+                  onPressed: () {
+                    if (value != "") {
+                      Navigator.pop(context, value);
+                    }
+                  })
+            ],
+          );
+        });
+
+    print(name);
+
+    var bytes = await image.readAsBytes();
+    await writeImage(bytes, '$name.png');
     var path = await _localPath;
     setState(() {
       _image = image;
@@ -218,10 +216,26 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                   alignment: Alignment(checkbox_x, checkbox_y)),
             ))),
-        floatingActionButton: FloatingActionButton(
-          onPressed: getImage,
-          tooltip: 'Camera',
-          child: Icon(Icons.camera_alt),
+        floatingActionButton: Wrap(
+          direction: Axis.vertical,
+          children: [
+            Container(
+              margin: EdgeInsets.all(3),
+              child:  FloatingActionButton(
+                onPressed: getImage,
+                tooltip: 'Camera',
+                child: Icon(Icons.camera_alt),
+              ),
+            ),
+            Container(
+              margin: EdgeInsets.all(3),
+              child: FloatingActionButton(
+                onPressed: getImage,
+                tooltip: 'Snapshot',
+                child: Icon(Icons.save),
+              ),
+            )
+          ],
         ),
         // This trailing comma makes auto-formatting nicer for build methods.
         drawer: Drawer(
@@ -239,9 +253,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
               ListTile(
-                title: Text('Set Alarm'),
-                onTap: () async {
-                },
+                title: Text('History'),
+                onTap: () async {},
               ),
             ],
           ),
