@@ -3,13 +3,12 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-// import 'package:path/path.dart' as p;
+import 'package:pigie_tracker/types.dart';
+import 'package:pigie_tracker/utils.dart';
 
 void main() async {
-  // WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
 }
 
@@ -38,9 +37,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-
 class MyHomePage extends StatefulWidget {
-
   MyHomePage({Key key, this.title}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
@@ -58,13 +55,59 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
+class HistoryPage extends StatefulWidget {
+  HistoryPage({Key key}) : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() => _HistoryPageState();
+}
+
+class _HistoryPageState extends State<HistoryPage> {
+  List<History> _histories = [];
+
+  Future<void> init() async {
+    final histories = historyFromJson(await getData());
+    setState(() {
+      _histories = histories;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    init();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Pigie Tracker")),
+      body: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Container(
+          child: ListView(
+            children: _histories.map((e) {
+              return Card(
+                  child: ListTile(
+                      onLongPress: () {},
+                      title: Text(e.date.toIso8601String()),
+                      trailing: Icon(Icons.more_vert),
+                      subtitle: Text(e.time.toString())));
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
-  double initialSize = 20;
-  bool hasInit;
   PickedFile _image;
   List<File> _images = [];
   List<String> text = [];
+  List<History> _histories = [];
   String _path = "";
   Map<int, bool> checkboxValues = {};
   ImagePicker picker = ImagePicker();
@@ -76,13 +119,25 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> initApp() async {
-    final path = await _localPath;
+    final path = await localPath();
 
     final imageDirectory = Directory('$path/images');
 
     final files = await imageDirectory.list().toList();
 
     final value = files.length;
+
+    if (!(await localFile()).existsSync()) {
+      await writeData("");
+    }
+
+    final json = await getData();
+
+    List<History> histories = [];
+
+    if (json != "") {
+      histories = historyFromJson(json);
+    }
 
     if (!await imageDirectory.exists()) {
       await imageDirectory.create();
@@ -107,30 +162,8 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _counter = value;
       _images = array;
+      _histories = histories;
     });
-  }
-
-  Future<String> get _localPath async {
-    final directory = await getApplicationDocumentsDirectory();
-
-    return directory.path;
-  }
-
-  Future<File> get _localFile async {
-    final path = await _localPath;
-    return File('$path/data.txt');
-  }
-
-  Future<File> _localImage(String fileName) async {
-    final path = await _localPath;
-    return File('$path/images/$fileName');
-  }
-
-  Future<File> writeImage(List<int> bytes, String fileName) async {
-    final file = await _localImage(fileName);
-
-    // write the file
-    return file.writeAsBytes(bytes);
   }
 
   Future<File> getImage() async {
@@ -168,14 +201,56 @@ class _MyHomePageState extends State<MyHomePage> {
 
     var bytes = await image.readAsBytes();
     await writeImage(bytes, '$name.png');
-    var path = await _localPath;
+    var path = await localPath();
     setState(() {
       _image = image;
-      _images.add(File(image.path));
+      _images.add(File('$path/images/$name.png'));
       _path = path;
       checkboxValues[_counter] = false;
       _counter++;
     });
+  }
+
+  Future<void> saveSnapshot() async {
+    final time = await showDialog<Time>(
+        context: context,
+        builder: (BuildContext build) {
+          return SimpleDialog(
+              title: const Text('Select Snapshot Time'),
+              children: <Widget>[
+                SimpleDialogOption(
+                  onPressed: () {
+                    Navigator.pop(context, Time.Day);
+                  },
+                  child: const Text('Day'),
+                ),
+                SimpleDialogOption(
+                  onPressed: () {
+                    Navigator.pop(context, Time.Night);
+                  },
+                  child: const Text('Night'),
+                ),
+              ]);
+        });
+
+    final date = DateTime.now();
+
+    final pigeons = _images.asMap().entries.map((e) {
+      final index = e.key;
+      final value = e.value;
+      final name = value.path.split("/").last.replaceAll(".png", "");
+      final status = checkboxValues[index] ? Status.Present : Status.Unknown;
+
+      return Pigeon(name: name, status: status);
+    }).toList();
+
+    final history = History(date: date, time: time, pigeons: pigeons);
+
+    setState(() {
+      _histories.add(history);
+    });
+
+    await writeData(historyToJson(_histories));
   }
 
   final checkbox_x = -1.0993 - 0.09 - 0.01;
@@ -221,7 +296,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             Container(
               margin: EdgeInsets.all(3),
-              child:  FloatingActionButton(
+              child: FloatingActionButton(
                 onPressed: getImage,
                 tooltip: 'Camera',
                 child: Icon(Icons.camera_alt),
@@ -230,7 +305,7 @@ class _MyHomePageState extends State<MyHomePage> {
             Container(
               margin: EdgeInsets.all(3),
               child: FloatingActionButton(
-                onPressed: getImage,
+                onPressed: saveSnapshot,
                 tooltip: 'Snapshot',
                 child: Icon(Icons.save),
               ),
@@ -254,7 +329,10 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               ListTile(
                 title: Text('History'),
-                onTap: () async {},
+                onTap: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => HistoryPage()));
+                },
               ),
             ],
           ),
