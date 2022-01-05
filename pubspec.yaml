@@ -21,9 +21,8 @@ environment:
   sdk: ">=2.7.0 <3.0.0"
 
 dependencies:
-  image_picker: 0.6.1+8
-  path_provider: ^0.4.1
-  android_alarm_manager: ^0.4.0
+  path_provider: 2.0.8
+  image_picker: 0.8.1
 #  path: 1.6.4
   flutter:
     sdk: flutter
