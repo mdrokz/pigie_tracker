@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pigie_tracker/types.dart';
@@ -90,7 +91,25 @@ class _HistoryPageState extends State<HistoryPage> {
             children: _histories.map((e) {
               return Card(
                   child: ListTile(
-                      onLongPress: () {},
+                      onTap: () async {
+                        final path = await localPath();
+                        showDialog(context: context, builder: (BuildContext b) {
+                          return SimpleDialog(
+                            title: Text(e.date.toIso8601String()),
+                            children: [Container(width: 400,height: 400,child: ListView(
+                              children: e.pigeons.map((p) {
+                                return Card(
+                                  child: ListTile(
+                                    title: Text(p.name),
+                                    leading: Container(width: 100,height: 100,decoration: BoxDecoration(image: DecorationImage(image: FileImage(File('$path/images/${p.name}.png'))))),
+                                    subtitle: Text(p.status.toString()),
+                                  ),
+                                );
+                              }).toList() ,
+                            ))],
+                          );
+                        });
+                      },
                       title: Text(e.date.toIso8601String()),
                       trailing: Icon(Icons.more_vert),
                       subtitle: Text(e.time.toString())));
@@ -111,6 +130,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _path = "";
   Map<int, bool> checkboxValues = {};
   ImagePicker picker = ImagePicker();
+  final webHookUrl = "https://discord.com/api/webhooks/929354335001931846/iXmTOrM4I3UrDs70V5D8MOVlK-ci9wrze0I-nUvmm2dDF-Y2J5KlxDU4B4slhckHvBbo";
 
   @override
   void initState() {
@@ -122,6 +142,10 @@ class _MyHomePageState extends State<MyHomePage> {
     final path = await localPath();
 
     final imageDirectory = Directory('$path/images');
+
+    if (!await imageDirectory.exists()) {
+      await imageDirectory.create();
+    }
 
     final files = await imageDirectory.list().toList();
 
@@ -137,10 +161,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (json != "") {
       histories = historyFromJson(json);
-    }
-
-    if (!await imageDirectory.exists()) {
-      await imageDirectory.create();
     }
 
     // var array = Iterable<int>.generate(value).toList().map((idx) {
@@ -233,7 +253,10 @@ class _MyHomePageState extends State<MyHomePage> {
               ]);
         });
 
+
     final date = DateTime.now();
+
+    var content = "Daily Checkup: \n ${date.toIso8601String()}";
 
     final pigeons = _images.asMap().entries.map((e) {
       final index = e.key;
@@ -241,6 +264,8 @@ class _MyHomePageState extends State<MyHomePage> {
       final name = value.path.split("/").last.replaceAll(".png", "");
       final status = checkboxValues[index] ? Status.Present : Status.Unknown;
 
+      content += "```$name:${status.toString()}\n```";
+      
       return Pigeon(name: name, status: status);
     }).toList();
 
@@ -251,6 +276,14 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     await writeData(historyToJson(_histories));
+    
+    final result = await http.post(Uri.parse(webHookUrl),body: new Discord(content: content).toJson());
+
+    if(result.statusCode == 204) {
+      showDialog(context: context, builder: (BuildContext b) {
+        return AlertDialog(title: Text("Pigeon Snapshot Saved Successfully."));
+      });
+    }
   }
 
   final checkbox_x = -1.0993 - 0.09 - 0.01;
@@ -305,7 +338,11 @@ class _MyHomePageState extends State<MyHomePage> {
             Container(
               margin: EdgeInsets.all(3),
               child: FloatingActionButton(
-                onPressed: saveSnapshot,
+                onPressed: _images.length > 0 ? saveSnapshot : () {
+                  showDialog(context: context, builder: (BuildContext b) {
+                    return AlertDialog(title: Text("There are no pigeons present."));
+                  });
+                },
                 tooltip: 'Snapshot',
                 child: Icon(Icons.save),
               ),
