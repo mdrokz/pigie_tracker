@@ -10,8 +10,10 @@
     <!-- application needs to have the device stay on -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:name="io.flutter.app.FlutterApplication"
+        android:name="${applicationName}"
         android:label="pigie_tracker"
         android:icon="@mipmap/ic_launcher">
         <activity
