@@ -28,8 +28,6 @@ class MainActivity : FlutterActivity() {
 
                 result.success(executeFFMPEG(call.arguments()))
             }
-            // Note: this method is invoked on the main thread.
-            // TODO
         }
     }
 
