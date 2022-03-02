@@ -93,22 +93,36 @@ class _HistoryPageState extends State<HistoryPage> {
                   child: ListTile(
                       onTap: () async {
                         final path = await localPath();
-                        showDialog(context: context, builder: (BuildContext b) {
-                          return SimpleDialog(
-                            title: Text(e.date.toIso8601String()),
-                            children: [Container(width: 400,height: 400,child: ListView(
-                              children: e.pigeons.map((p) {
-                                return Card(
-                                  child: ListTile(
-                                    title: Text(p.name),
-                                    leading: Container(width: 100,height: 100,decoration: BoxDecoration(image: DecorationImage(image: FileImage(File('$path/images/${p.name}.png'))))),
-                                    subtitle: Text(p.status.toString()),
-                                  ),
-                                );
-                              }).toList() ,
-                            ))],
-                          );
-                        });
+                        showDialog(
+                            context: context,
+                            builder: (BuildContext b) {
+                              return SimpleDialog(
+                                title: Text(e.date.toIso8601String()),
+                                children: [
+                                  Container(
+                                      width: 400,
+                                      height: 400,
+                                      child: ListView(
+                                        children: e.pigeons.map((p) {
+                                          return Card(
+                                            child: ListTile(
+                                              title: Text(p.name),
+                                              leading: Container(
+                                                  width: 100,
+                                                  height: 100,
+                                                  decoration: BoxDecoration(
+                                                      image: DecorationImage(
+                                                          image: FileImage(File(
+                                                              '$path/images/${p.name}.png'))))),
+                                              subtitle:
+                                                  Text(p.status.toString()),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ))
+                                ],
+                              );
+                            });
                       },
                       title: Text(e.date.toIso8601String()),
                       trailing: Icon(Icons.more_vert),
@@ -124,13 +138,14 @@ class _HistoryPageState extends State<HistoryPage> {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   PickedFile _image;
-  List<File> _images = [];
-  List<String> text = [];
+  Map<String,File> _images = {};
+  List<String> images = [];
   List<History> _histories = [];
   String _path = "";
   Map<int, bool> checkboxValues = {};
   ImagePicker picker = ImagePicker();
-  final webHookUrl = "https://discord.com/api/webhooks/929354335001931846/iXmTOrM4I3UrDs70V5D8MOVlK-ci9wrze0I-nUvmm2dDF-Y2J5KlxDU4B4slhckHvBbo";
+  final webHookUrl =
+      "https://discord.com/api/webhooks/929354335001931846/iXmTOrM4I3UrDs70V5D8MOVlK-ci9wrze0I-nUvmm2dDF-Y2J5KlxDU4B4slhckHvBbo";
 
   @override
   void initState() {
@@ -168,20 +183,20 @@ class _MyHomePageState extends State<MyHomePage> {
     //
     //   return File(val.path);
     // });
-    var array = files.asMap().entries.map((entry) {
-      final index = entry.key;
-      final file = entry.value;
+    var map = files.asMap().map((key,entity) {
+      final name = entity.path.split("/").last.replaceAll(".png", "");
 
       setState(() {
-        checkboxValues[index] = false;
+        checkboxValues[key] = false;
       });
 
-      return File(file.path);
-    }).toList();
+      return MapEntry(name, File(entity.path));
+    });
 
     setState(() {
       _counter = value;
-      _images = array;
+      _images = map;
+      images = map.keys.toList();
       _histories = histories;
     });
   }
@@ -224,7 +239,8 @@ class _MyHomePageState extends State<MyHomePage> {
     var path = await localPath();
     setState(() {
       _image = image;
-      _images.add(File('$path/images/$name.png'));
+      _images[name] = File('$path/images/$name.png');
+      images = _images.keys.toList();
       _path = path;
       checkboxValues[_counter] = false;
       _counter++;
@@ -253,19 +269,17 @@ class _MyHomePageState extends State<MyHomePage> {
               ]);
         });
 
-
     final date = DateTime.now();
 
     var content = "Daily Checkup: \n ${date.toIso8601String()}";
 
-    final pigeons = _images.asMap().entries.map((e) {
-      final index = e.key;
-      final value = e.value;
-      final name = value.path.split("/").last.replaceAll(".png", "");
-      final status = checkboxValues[index] ? Status.Present : Status.Unknown;
+    var count = 0;
+
+    final pigeons = _images.keys.map((name) {
+      final status = checkboxValues[count] ? Status.Present : Status.Unknown;
 
       content += "```$name:${status.toString()}\n```";
-      
+      count++;
       return Pigeon(name: name, status: status);
     }).toList();
 
@@ -276,13 +290,17 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     await writeData(historyToJson(_histories));
-    
-    final result = await http.post(Uri.parse(webHookUrl),body: new Discord(content: content).toJson());
 
-    if(result.statusCode == 204) {
-      showDialog(context: context, builder: (BuildContext b) {
-        return AlertDialog(title: Text("Pigeon Snapshot Saved Successfully."));
-      });
+    final result = await http.post(Uri.parse(webHookUrl),
+        body: new Discord(content: content).toJson());
+
+    if (result.statusCode == 204) {
+      showDialog(
+          context: context,
+          builder: (BuildContext b) {
+            return AlertDialog(
+                title: Text("Pigeon Snapshot Saved Successfully."));
+          });
     }
   }
 
@@ -307,23 +325,104 @@ class _MyHomePageState extends State<MyHomePage> {
             padding: const EdgeInsets.all(18.0),
             child: Center(
                 child: GridView.builder(
-              gridDelegate:
-                  SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
-              itemCount: checkboxValues.keys.length,
-              itemBuilder: (context, index) => Container(
-                  width: 160,
-                  height: 160,
-                  decoration: BoxDecoration(
-                      image: DecorationImage(
-                          image: FileImage(_images[index]), fit: BoxFit.cover)),
-                  child: Checkbox(
-                    value: checkboxValues[index],
-                    onChanged: (bool value) => {
-                      setState(() => {checkboxValues[index] = value})
-                    },
-                  ),
-                  alignment: Alignment(checkbox_x, checkbox_y)),
-            ))),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2),
+                    itemCount: checkboxValues.keys.length,
+                    itemBuilder: (context, index) => GestureDetector(
+                          onTap: () {
+                            showDialog<String>(
+                                context: context,
+                                builder: (BuildContext build) {
+                                  var name = images[index];
+                                  return SimpleDialog(
+                                      title: Text('Pigeon $name'),
+                                      children: <Widget>[
+                                        SimpleDialogOption(
+                                          onPressed: () async {
+                                            var name = await showDialog(
+                                                context: context,
+                                                builder: (BuildContext build) {
+                                                  var value = "";
+                                                  return SimpleDialog(
+                                                    children: [
+                                                      TextField(
+                                                        decoration:
+                                                            InputDecoration(
+                                                                // border: OutlineInputBorder(),
+                                                                hintText:
+                                                                    "Pigeon Name"),
+                                                        onChanged: (String v) {
+                                                          value = v;
+                                                        },
+                                                      ),
+                                                      MaterialButton(
+                                                          child: const Text(
+                                                              "Save"),
+                                                          color: Colors
+                                                              .lightBlueAccent,
+                                                          onPressed: () {
+                                                            if (value != "") {
+                                                              Navigator.pop(
+                                                                  context,
+                                                                  value);
+                                                            }
+                                                          })
+                                                    ],
+                                                  );
+                                                });
+                                            var image = images[index];
+                                            var split = _images[image].path.split('/');
+                                            split.removeAt(split.length - 1);
+                                            var path = split.join('/') + '/$name.png';
+                                            await _images[image].copy(path);
+                                            await _images[image].delete();
+                                            setState(() {
+                                              _images.remove(image);
+                                              _images[name] = File(path);
+                                              images = _images.keys.toList();
+                                              _histories =
+                                                  _histories.map((history) {
+                                                history.pigeons[index].name =
+                                                    name;
+                                                return history;
+                                              }).toList();
+                                            });
+                                          },
+                                          child: const Text('Edit Name'),
+                                        ),
+                                        SimpleDialogOption(
+                                          onPressed: () async {
+                                            var images = _images.keys.toList();
+                                            var image = images[index];
+                                            await _images[image].delete();
+                                            setState(() {
+                                              checkboxValues.remove(index);
+                                              _counter--;
+                                              _images.remove(image);
+                                            });
+                                            Navigator.pop(context);
+                                          },
+                                          child: const Text('Delete'),
+                                        ),
+                                      ]);
+                                });
+                          },
+                          child: Container(
+                              width: 160,
+                              height: 160,
+                              decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                      image: FileImage(_images[images[index]]),
+                                      fit: BoxFit.cover)),
+                              child: Checkbox(
+                                value: checkboxValues[index],
+                                onChanged: (bool value) => {
+                                  setState(
+                                      () => {checkboxValues[index] = value})
+                                },
+                              ),
+                              alignment: Alignment(checkbox_x, checkbox_y)),
+                        )))),
         floatingActionButton: Wrap(
           direction: Axis.vertical,
           children: [
@@ -338,11 +437,16 @@ class _MyHomePageState extends State<MyHomePage> {
             Container(
               margin: EdgeInsets.all(3),
               child: FloatingActionButton(
-                onPressed: _images.length > 0 ? saveSnapshot : () {
-                  showDialog(context: context, builder: (BuildContext b) {
-                    return AlertDialog(title: Text("There are no pigeons present."));
-                  });
-                },
+                onPressed: _images.length > 0
+                    ? saveSnapshot
+                    : () {
+                        showDialog(
+                            context: context,
+                            builder: (BuildContext b) {
+                              return AlertDialog(
+                                  title: Text("There are no pigeons present."));
+                            });
+                      },
                 tooltip: 'Snapshot',
                 child: Icon(Icons.save),
               ),
