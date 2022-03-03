@@ -138,7 +138,7 @@ class _HistoryPageState extends State<HistoryPage> {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   PickedFile _image;
-  Map<String,File> _images = {};
+  Map<String, File> _images = {};
   List<String> images = [];
   List<History> _histories = [];
   String _path = "";
@@ -183,7 +183,7 @@ class _MyHomePageState extends State<MyHomePage> {
     //
     //   return File(val.path);
     // });
-    var map = files.asMap().map((key,entity) {
+    var map = files.asMap().map((key, entity) {
       final name = entity.path.split("/").last.replaceAll(".png", "");
 
       setState(() {
@@ -305,7 +305,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   final checkbox_x = -1.0993 - 0.09 - 0.01;
-  final checkbox_y = -1.0993 - 0.09 - 0.01;
+  final checkbox_y = -2.0993 - 0.09 - 0.01;
 
   @override
   Widget build(BuildContext context) {
@@ -371,9 +371,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   );
                                                 });
                                             var image = images[index];
-                                            var split = _images[image].path.split('/');
+                                            var split =
+                                                _images[image].path.split('/');
                                             split.removeAt(split.length - 1);
-                                            var path = split.join('/') + '/$name.png';
+                                            var path =
+                                                split.join('/') + '/$name.png';
                                             await _images[image].copy(path);
                                             await _images[image].delete();
                                             setState(() {
@@ -408,20 +410,43 @@ class _MyHomePageState extends State<MyHomePage> {
                                 });
                           },
                           child: Container(
-                              width: 160,
-                              height: 160,
-                              decoration: BoxDecoration(
-                                  image: DecorationImage(
-                                      image: FileImage(_images[images[index]]),
-                                      fit: BoxFit.cover)),
-                              child: Checkbox(
-                                value: checkboxValues[index],
-                                onChanged: (bool value) => {
-                                  setState(
-                                      () => {checkboxValues[index] = value})
-                                },
-                              ),
-                              alignment: Alignment(checkbox_x, checkbox_y)),
+                            width: 160,
+                            height: 160,
+                            decoration: BoxDecoration(
+                                image: DecorationImage(
+                                    image: FileImage(_images[images[index]]),
+                                    fit: BoxFit.cover)),
+                            child: Flex(
+                              direction: Axis.vertical,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.max,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Container(
+                                    child: Checkbox(
+                                      value: checkboxValues[index],
+                                      onChanged: (bool value) => {
+                                        setState(() =>
+                                            {checkboxValues[index] = value})
+                                      },
+                                    ),
+                                    margin: EdgeInsets.only(left: 0,top: 0,bottom: 65,right: 10),
+                                    alignment:
+                                        Alignment(checkbox_x, checkbox_y)),
+                                Expanded(child: Container(
+                                  child: const Text("meow",
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 19)),
+                                  width: 160,
+                                  height: 20,
+                                  margin: EdgeInsets.all(0.5),
+                                  alignment: Alignment(0, 0),
+                                  color: Colors.blueGrey,
+                                ))
+                              ],
+                            ),
+                            // alignment: Alignment(checkbox_x, checkbox_y)
+                          ),
                         )))),
         floatingActionButton: Wrap(
           direction: Axis.vertical,
