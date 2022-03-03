@@ -4,9 +4,15 @@
 
 import 'dart:convert';
 
+import 'package:flutter/cupertino.dart';
+
 List<History> historyFromJson(String str) => List<History>.from(json.decode(str).map((x) => History.fromJson(x)));
 
 String historyToJson(List<History> data) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
+
+Discord discordFromJson(String str) => Discord.fromJson(json.decode(str));
+
+String discordToJson(Discord data) => json.encode(data.toJson());
 
 Status getStatusFromString(String statusAsString) {
   for (Status element in Status.values) {
@@ -76,5 +82,21 @@ class Pigeon {
   Map<String, dynamic> toJson() => {
     "name": name,
     "status": status.toString(),
+  };
+}
+
+class Discord {
+  Discord({
+    @required this.content,
+  });
+
+  String content;
+
+  factory Discord.fromJson(Map<String, dynamic> json) => Discord(
+    content: json["content"],
+  );
+
+  Map<String, dynamic> toJson() => {
+    "content": content,
   };
 }
