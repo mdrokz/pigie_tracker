@@ -43,7 +43,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.example.ffmpeg_integration"
+        applicationId "com.example.pigie_tracker"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
@@ -65,15 +65,15 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-//    implementation fileTree(dir: "$buildDir/native-libs", include: 'native-libs.jar')
+    implementation fileTree(dir: "$buildDir/native-libs", include: 'native-libs.jar')
 }
 
-//task nativeLibsToJar(type: Jar, description: 'create a jar archive of the native libs') {
-//    destinationDir file("$buildDir/native-libs")
-//    baseName 'native-libs'
-//    from fileTree(dir: 'mybins', include: '**/*')
-//    into 'lib/'
-//}
-//tasks.withType(JavaCompile) {
-//    compileTask -> compileTask.dependsOn(nativeLibsToJar)
-//}
+task nativeLibsToJar(type: Jar, description: 'create a jar archive of the native libs') {
+    destinationDir file("$buildDir/native-libs")
+    baseName 'native-libs'
+    from fileTree(dir: 'bin', include: '**/*')
+    into 'lib/'
+}
+tasks.withType(JavaCompile) {
+    compileTask -> compileTask.dependsOn(nativeLibsToJar)
+}
