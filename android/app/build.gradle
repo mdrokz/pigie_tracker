@@ -57,6 +57,11 @@ android {
             signingConfig signingConfigs.debug
         }
     }
+    bundle {
+        abi {
+            enableSplit = true
+        }
+    }
 }
 
 flutter {
@@ -65,15 +70,15 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation fileTree(dir: "$buildDir/native-libs", include: 'native-libs.jar')
+//    implementation fileTree(dir: "$buildDir/native-libs", include: 'native-libs.jar')
 }
 
-task nativeLibsToJar(type: Jar, description: 'create a jar archive of the native libs') {
-    destinationDir file("$buildDir/native-libs")
-    baseName 'native-libs'
-    from fileTree(dir: 'bin', include: '**/*')
-    into 'lib/'
-}
-tasks.withType(JavaCompile) {
-    compileTask -> compileTask.dependsOn(nativeLibsToJar)
-}
+//task nativeLibsToJar(type: Jar, description: 'create a jar archive of the native libs') {
+//    destinationDir file("$buildDir/native-libs")
+//    baseName 'native-libs'
+//    from fileTree(dir: 'bin', include: '**/*')
+//    into 'lib/'
+//}
+//tasks.withType(JavaCompile) {
+//    compileTask -> compileTask.dependsOn(nativeLibsToJar)
+//}
