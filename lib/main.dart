@@ -434,7 +434,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     alignment:
                                         Alignment(checkbox_x, checkbox_y)),
                                 Expanded(child: Container(
-                                  child: const Text("meow",
+                                  child: Text(images[index],
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 19)),
                                   width: 160,
